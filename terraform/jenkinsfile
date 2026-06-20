@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        // Fetches your AWS credentials stored securely in Jenkins Credential Manager
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION    = 'ap-southeast-2'
+    }
+
+    stages {
+        stage('Checkout Source') {
+            steps {
+                // Pulls down the Myproject- files seen in your VS Code workspace
+                git url: 'https://github.com/Arul-pro/eks-.git', branch: 'main'
+                
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('terraform') {
+                    // Generates the execution plan safely targeting the terraform folder
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Manual Approval Interlock') {
+            steps {
+                // Pauses execution so you can review costs before provisioning AWS resources
+                input message: 'Do you want to deploy this EKS Cluster using t2.micro nodes?', ok: 'Deploy'
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('terraform') {
+                    // Executes the deployment safely using the generated plan
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Keeps your Jenkins workspace on your EC2 agent pristine and clean
+            cleanWs()
+        }
+    }
+}
