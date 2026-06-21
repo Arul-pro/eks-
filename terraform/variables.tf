@@ -10,7 +10,7 @@ variable "vpc_id" {
 
 variable "cluster_name" {
   type        = string
-  default     = "dev-eks-cluster"
+  default     = "app"
 }
 
 variable "kubernetes_version" {
